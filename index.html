@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ragdoll Physics Sandbox - Ultimate Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #header {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        #gameTitle {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #mainContent {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+
+        #sidebar {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #gameCanvas {
+            flex: 1;
+            background: #1a1a2e;
+            position: relative;
+            cursor: crosshair;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        .section h3 {
+            margin-bottom: 15px;
+            color: #4ecdc4;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.danger {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+        }
+
+        .btn.success {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+
+        .slider-container {
+            margin-bottom: 15px;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4ecdc4;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .object-palette {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .object-item {
+            width: 60px;
+            height: 60px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .object-item:hover {
+            border-color: #4ecdc4;
+            background: rgba(78, 205, 196, 0.2);
+            transform: scale(1.1);
+        }
+
+        .object-item.selected {
+            border-color: #4ecdc4;
+            background: rgba(78, 205, 196, 0.3);
+        }
+
+        #notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 10000;
+        }
+
+        #notification.show {
+            transform: translateX(0);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100000;
+            color: white;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 6px solid rgba(255, 255, 255, 0.3);
+            border-top: 6px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                width: 250px;
+            }
+            
+            .button-group {
+                grid-template-columns: 1fr;
+            }
+            
+            .object-palette {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingScreen">
+        <div class="loader"></div>
+        <h2>Loading Ragdoll Physics Sandbox...</h2>
+        <p>Initializing physics engine...</p>
+    </div>
+
+    <div id="gameContainer">
+        <div id="header">
+            <div id="gameTitle">🎮 Ragdoll Physics Sandbox</div>
+            <div class="stats">
+                <span id="fps">FPS: 60</span>
+                <span id="objectCount">Objects: 0</span>
+                <span id="physicsTime">Physics: 0ms</span>
+            </div>
+        </div>
+
+        <div id="mainContent">
+            <div id="sidebar">
+                <div class="section">
+                    <h3>🎯 Spawn Objects</h3>
+                    <div class="object-palette">
+                        <div class="object-item" data-type="ragdoll" title="Spawn Ragdoll">🧍</div>
+                        <div class="object-item" data-type="box" title="Spawn Box">📦</div>
+                        <div class="object-item" data-type="ball" title="Spawn Ball">⚽</div>
+                        <div class="object-item" data-type="weapon" title="Spawn Weapon">⚔️</div>
+                        <div class="object-item" data-type="explosive" title="Spawn Explosive">💣</div>
+                        <div class="object-item" data-type="vehicle" title="Spawn Vehicle">🚗</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>🌍 Environment</h3>
+                    <div class="button-group">
+                        <button class="btn" onclick="changeMap('default')">Default</button>
+                        <button class="btn" onclick="changeMap('space')">Space</button>
+                        <button class="btn" onclick="changeMap('underwater')">Underwater</button>
+                        <button class="btn" onclick="changeMap('moon')">Moon</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>⚙️ Physics Settings</h3>
+                    <div class="slider-container">
+                        <label>Gravity: <span id="gravityValue">1.0</span></label>
+                        <input type="range" class="slider" id="gravitySlider" min="0" max="2" step="0.1" value="1">
+                    </div>
+                    <div class="slider-container">
+                        <label>Air Friction: <span id="frictionValue">0.01</span></label>
+                        <input type="range" class="slider" id="frictionSlider" min="0" max="0.1" step="0.01" value="0.01">
+                    </div>
+                    <div class="slider-container">
+                        <label>Time Scale: <span id="timeScaleValue">1.0</span></label>
+                        <input type="range" class="slider" id="timeScaleSlider" min="0.1" max="2" step="0.1" value="1">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>🎨 Visual Effects</h3>
+                    <div class="button-group">
+                        <button class="btn" onclick="toggleParticles()">Particles</button>
+                        <button class="btn" onclick="toggleTrails()">Trails</button>
+                        <button class="btn" onclick="toggleWireframe()">Wireframe</button>
+                        <button class="btn" onclick="toggleDebug()">Debug</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>💾 Save & Load</h3>
+                    <div class="button-group">
+                        <button class="btn success" onclick="saveScene()">Save Scene</button>
+                        <button class="btn" onclick="loadScene()">Load Scene</button>
+                        <button class="btn danger" onclick="clearScene()">Clear All</button>
+                        <button class="btn" onclick="exportScene()">Export</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>🎮 Controls</h3>
+                    <p style="font-size: 12px; line-height: 1.4; color: #ccc;">
+                        • <strong>Click & Drag:</strong> Move objects<br>
+                        • <strong>Right Click:</strong> Delete object<br>
+                        • <strong>Scroll:</strong> Zoom in/out<br>
+                        • <strong>Space:</strong> Pause physics<br>
+                        • <strong>R:</strong> Reset scene<br>
+                        • <strong>S:</strong> Slow motion<br>
+                    </p>
+                </div>
+            </div>
+
+            <canvas id="gameCanvas"></canvas>
+        </div>
+    </div>
+
+    <div id="notification"></div>
+
+    <!-- Matter.js Physics Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+    <script>
+        // Game State Management
+        class GameState {
+            constructor() {
+                this.engine = Matter.Engine.create();
+                this.world = this.engine.world;
+                this.render = null;
+                this.runner = null;
+                this.mouse = null;
+                this.mouseConstraint = null;
+                
+                this.objects = [];
+                this.particles = [];
+                this.trails = [];
+                this.selectedObject = null;
+                this.isPaused = false;
+                this.timeScale = 1.0;
+                
+                this.settings = {
+                    gravity: 1.0,
+                    airFriction: 0.01,
+                    showParticles: true,
+                    showTrails: false,
+                    wireframe: false,
+                    debug: false
+                };
+
+                this.maps = {
+                    default: { gravity: { x: 0, y: 1 }, background: '#1a1a2e' },
+                    space: { gravity: { x: 0, y: 0 }, background: '#000033' },
+                    underwater: { gravity: { x: 0, y: 0.3 }, background: '#003366' },
+                    moon: { gravity: { x: 0, y: 0.16 }, background: '#4a4a4a' }
+                };
+
+                this.currentMap = 'default';
+            }
+        }
+
+        // Particle System
+        class ParticleSystem {
+            constructor() {
+                this.particles = [];
+            }
+
+            createExplosion(x, y, color = '#ff6b6b') {
+                for (let i = 0; i < 20; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 10,
+                        vy: (Math.random() - 0.5) * 10,
+                        life: 1.0,
+                        color: color,
+                        size: Math.random() * 5 + 2
+                    });
+                }
+            }
+
+            createBlood(x, y) {
+                this.createExplosion(x, y, '#ff0000');
+            }
+
+            update() {
+                this.particles = this.particles.filter(particle => {
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    particle.vy += 0.2; // gravity
+                    particle.life -= 0.02;
+                    particle.size *= 0.98;
+                    return particle.life > 0;
+                });
+            }
+
+            render(ctx) {
+                this.particles.forEach(particle => {
+                    ctx.save();
+                    ctx.globalAlpha = particle.life;
+                    ctx.fillStyle = particle.color;
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+            }
+        }
+
+        // Ragdoll Factory
+        class RagdollFactory {
+            static createRagdoll(x, y, scale = 1) {
+                const Bodies = Matter.Bodies;
+                const Constraint = Matter.Constraint;
+                const Composite = Matter.Composite;
+
+                const headRadius = 20 * scale;
+                const bodyWidth = 30 * scale;
+                const bodyHeight = 50 * scale;
+                const limbWidth = 15 * scale;
+                const limbLength = 40 * scale;
+
+                // Create body parts
+                const head = Bodies.circle(x, y - 60 * scale, headRadius, {
+                    render: { fillStyle: '#ffdbac' },
+                    label: 'head'
+                });
+
+                const torso = Bodies.rectangle(x, y - 20 * scale, bodyWidth, bodyHeight, {
+                    render: { fillStyle: '#4a90e2' },
+                    label: 'torso'
+                });
+
+                const leftUpperArm = Bodies.rectangle(x - 25 * scale, y - 35 * scale, limbWidth, limbLength, {
+                    render: { fillStyle: '#ffdbac' },
+                    label: 'leftUpperArm'
+                });
+
+                const rightUpperArm = Bodies.rectangle(x + 25 * scale, y - 35 * scale, limbWidth, limbLength, {
+                    render: { fillStyle: '#ffdbac' },
+                    label: 'rightUpperArm'
+                });
+
+                const leftLowerArm = Bodies.rectangle(x - 25 * scale, y + 5 * scale, limbWidth, limbLength, {
+                    render: { fillStyle: '#ffdbac' },
+                    label: 'leftLowerArm'
+                });
+
+                const rightLowerArm = Bodies.rectangle(x + 25 * scale, y + 5 * scale, limbWidth, limbLength, {
+                    render: { fillStyle: '#ffdbac' },
+                    label: 'rightLowerArm'
+                });
+
+                const leftUpperLeg = Bodies.rectangle(x - 12 * scale, y + 25 * scale, limbWidth, limbLength, {
+                    render: { fillStyle: '#2c3e50' },
+                    label: 'leftUpperLeg'
+                });
+
+                const rightUpperLeg = Bodies.rectangle(x + 12 * scale, y + 25 * scale, limbWidth, limbLength, {
+                    render: { fillStyle: '#2c3e50' },
+                    label: 'rightUpperLeg'
+                });
+
+                const leftLowerLeg = Bodies.rectangle(x - 12 * scale, y + 65 * scale, limbWidth, limbLength, {
+                    render: { fillStyle: '#8b4513' },
+                    label: 'leftLowerLeg'
+                });
+
+                const rightLowerLeg = Bodies.rectangle(x + 12 * scale, y + 65 * scale, limbWidth, limbLength, {
+                    render: { fillStyle: '#8b4513' },
+                    label: 'rightLowerLeg'
+                });
+
+                // Create constraints (joints)
+                const constraints = [
+                    // Head to torso
+                    Constraint.create({
+                        bodyA: head,
+                        bodyB: torso,
+                        pointA: { x: 0, y: 15 * scale },
+                        pointB: { x: 0, y: -25 * scale },
+                        stiffness: 0.8,
+                        length: 5 * scale
+                    }),
+                    // Left arm
+                    Constraint.create({
+                        bodyA: torso,
+                        bodyB: leftUpperArm,
+                        pointA: { x: -15 * scale, y: -20 * scale },
+                        pointB: { x: 0, y: -15 * scale },
+                        stiffness: 0.8,
+                        length: 5 * scale
+                    }),
+                    Constraint.create({
+                        bodyA: leftUpperArm,
+                        bodyB: leftLowerArm,
+                        pointA: { x: 0, y: 15 * scale },
+                        pointB: { x: 0, y: -15 * scale },
+                        stiffness: 0.8,
+                        length: 5 * scale
+                    }),
+                    // Right arm
+                    Constraint.create({
+                        bodyA: torso,
+                        bodyB: rightUpperArm,
+                        pointA: { x: 15 * scale, y: -20 * scale },
+                        pointB: { x: 0, y: -15 * scale },
+                        stiffness: 0.8,
+                        length: 5 * scale
+                    }),
+                    Constraint.create({
+                        bodyA: rightUpperArm,
+                        bodyB: rightLowerArm,
+                        pointA: { x: 0, y: 15 * scale },
+                        pointB: { x: 0, y: -15 * scale },
+                        stiffness: 0.8,
+                        length: 5 * scale
+                    }),
+                    // Left leg
+                    Constraint.create({
+                        bodyA: torso,
+                        bodyB: leftUpperLeg,
+                        pointA: { x: -12 * scale, y: 20 * scale },
+                        pointB: { x: 0, y: -15 * scale },
+                        stiffness: 0.8,
+                        length: 5 * scale
+                    }),
+                    Constraint.create({
+                        bodyA: leftUpperLeg,
+                        bodyB: leftLowerLeg,
+                        pointA: { x: 0, y: 15 * scale },
+                        pointB: { x: 0, y: -15 * scale },
+                        stiffness: 0.8,
+                        length: 5 * scale
+                    }),
+                    // Right leg
+                    Constraint.create({
+                        bodyA: torso,
+                        bodyB: rightUpperLeg,
+                        pointA: { x: 12 * scale, y: 20 * scale },
+                        pointB: { x: 0, y: -15 * scale },
+                        stiffness: 0.8,
+                        length: 5 * scale
+                    }),
+                    Constraint.create({
+                        bodyA: rightUpperLeg,
+                        bodyB: rightLowerLeg,
+                        pointA: { x: 0, y: 15 * scale },
+                        pointB: { x: 0, y: -15 * scale },
+                        stiffness: 0.8,
+                        length: 5 * scale
+                    })
+                ];
+
+                return Composite.create({
+                    bodies: [head, torso, leftUpperArm, rightUpperArm, leftLowerArm, rightLowerArm, leftUpperLeg, rightUpperLeg, leftLowerLeg, rightLowerLeg],
+                    constraints: constraints
+                });
+            }
+        }
+
+        // Weapon Factory
+        class WeaponFactory {
+            static createWeapon(x, y, type = 'sword') {
+                const Bodies = Matter.Bodies;
+                
+                switch (type) {
+                    case 'sword':
+                        return Bodies.rectangle(x, y, 5, 60, {
+                            render: { fillStyle: '#silver' },
+                            label: 'sword',
+                            density: 0.001
+                        });
+                    case 'gun':
+                        return Bodies.rectangle(x, y, 10, 30, {
+                            render: { fillStyle: '#2c3e50' },
+                            label: 'gun',
+                            density: 0.002
+                        });
+                    case 'axe':
+                        return Bodies.rectangle(x, y, 8, 50, {
+                            render: { fillStyle: '#8b4513' },
+                            label: 'axe',
+                            density: 0.003
+                        });
+                    default:
+                        return Bodies.rectangle(x, y, 5, 40, {
+                            render: { fillStyle: '#gray' },
+                            label: 'weapon',
+                            density: 0.001
+                        });
+                }
+            }
+
+            static createExplosive(x, y) {
+                return Matter.Bodies.circle(x, y, 15, {
+                    render: { fillStyle: '#ff0000' },
+                    label: 'explosive',
+                    density: 0.005
+                });
+            }
+        }
+
+        // Vehicle Factory
+        class VehicleFactory {
+            static createVehicle(x, y, type = 'car') {
+                const Bodies = Matter.Bodies;
+                const Constraint = Matter.Constraint;
+                const Composite = Matter.Composite;
+
+                const chassis = Bodies.rectangle(x, y - 20, 100, 20, {
+                    render: { fillStyle: '#e74c3c' },
+                    label: 'chassis'
+                });
+
+                const wheel1 = Bodies.circle(x - 30, y + 10, 20, {
+                    render: { fillStyle: '#2c3e50' },
+                    label: 'wheel'
+                });
+
+                const wheel2 = Bodies.circle(x + 30, y + 10, 20, {
+                    render: { fillStyle: '#2c3e50' },
+                    label: 'wheel'
+                });
+
+                const constraints = [
+                    Constraint.create({
+                        bodyA: chassis,
+                        bodyB: wheel1,
+                        pointA: { x: -30, y: 20 },
+                        pointB: { x: 0, y: 0 },
+                        stiffness: 1,
+                        length: 0
+                    }),
+                    Constraint.create({
+                        bodyA: chassis,
+                        bodyB: wheel2,
+                        pointA: { x: 30, y: 20 },
+                        pointB: { x: 0, y: 0 },
+                        stiffness: 1,
+                        length: 0
+                    })
+                ];
+
+                return Composite.create({
+                    bodies: [chassis, wheel1, wheel2],
+                    constraints: constraints
+                });
+            }
+        }
+
+        // Game Controller
+        class GameController {
+            constructor() {
+                this.state = new GameState();
+                this.particleSystem = new ParticleSystem();
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                this.setupCanvas();
+                this.setupPhysics();
+                this.setupEventListeners();
+                this.setupUI();
+                
+                this.showNotification('🎮 Ragdoll Physics Sandbox Loaded!');
+            }
+
+            setupCanvas() {
+                const resizeCanvas = () => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.canvas.width = rect.width;
+                    this.canvas.height = rect.height;
+                };
+                
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+            }
+
+            setupPhysics() {
+                const canvas = this.canvas;
+                const engine = this.state.engine;
+                const world = this.state.world;
+
+                // Create renderer
+                this.state.render = Matter.Render.create({
+                    canvas: canvas,
+                    engine: engine,
+                    options: {
+                        width: canvas.width,
+                        height: canvas.height,
+                        wireframe: false,
+                        background: this.state.maps[this.state.currentMap].background,
+                        showVelocity: false,
+                        showAngleIndicator: false,
+                        showDebug: false
+                    }
+                });
+
+                // Create runner
+                this.state.runner = Matter.Runner.create();
+
+                // Add mouse control
+                this.state.mouse = Matter.Mouse.create(canvas);
+                this.state.mouseConstraint = Matter.MouseConstraint.create(engine, {
+                    mouse: this.state.mouse,
+                    constraint: {
+                        stiffness: 0.2,
+                        render: { visible: false }
+                    }
+                });
+
+                // Add boundaries
+                const boundaries = [
+                    Matter.Bodies.rectangle(canvas.width / 2, canvas.height + 25, canvas.width, 50, { 
+                        isStatic: true, 
+                        render: { fillStyle: '#2c3e50' } 
+                    }),
+                    Matter.Bodies.rectangle(-25, canvas.height / 2, 50, canvas.height, { 
+                        isStatic: true, 
+                        render: { fillStyle: '#2c3e50' } 
+                    }),
+                    Matter.Bodies.rectangle(canvas.width + 25, canvas.height / 2, 50, canvas.height, { 
+                        isStatic: true, 
+                        render: { fillStyle: '#2c3e50' } 
+                    })
+                ];
+
+                Matter.World.add(world, [...boundaries, this.state.mouseConstraint]);
+
+                // Set up collision detection
+                Matter.Events.on(engine, 'collisionStart', (event) => {
+                    event.pairs.forEach(pair => {
+                        const { bodyA, bodyB } = pair;
+                        
+                        // Check for explosive collisions
+                        if (bodyA.label === 'explosive' || bodyB.label === 'explosive') {
+                            const explosive = bodyA.label === 'explosive' ? bodyA : bodyB;
+                            this.explode(explosive.position.x, explosive.position.y);
+                            Matter.World.remove(world, explosive);
+                        }
+
+                        // Check for high-impact collisions
+                        const velocity = Math.sqrt(
+                            Math.pow(bodyA.velocity.x - bodyB.velocity.x, 2) +
+                            Math.pow(bodyA.velocity.y - bodyB.velocity.y, 2)
+                        );
+
+                        if (velocity > 10) {
+                            const collisionPoint = pair.collision.supports[0];
+                            if (collisionPoint) {
+                                this.particleSystem.createBlood(collisionPoint.x, collisionPoint.y);
+                            }
+                        }
+                    });
+                });
+
+                // Start the engine
+                Matter.Render.run(this.state.render);
+                Matter.Runner.run(this.state.runner, engine);
+            }
+
+            setupEventListeners() {
+                // Object spawning
+                document.querySelectorAll('.object-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        const type = e.target.dataset.type;
+                        this.spawnObject(type);
+                    });
+                });
+
+                // Physics sliders
+                document.getElementById('gravitySlider').addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    this.state.settings.gravity = value;
+                    document.getElementById('gravityValue').textContent = value.toFixed(1);
+                    this.updatePhysics();
+                });
+
+                document.getElementById('frictionSlider').addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    this.state.settings.airFriction = value;
+                    document.getElementById('frictionValue').textContent = value.toFixed(2);
+                    this.updatePhysics();
+                });
+
+                document.getElementById('timeScaleSlider').addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    this.state.timeScale = value;
+                    document.getElementById('timeScaleValue').textContent = value.toFixed(1);
+                    this.state.runner.timeScale = value;
+                });
+
+                // Keyboard controls
+                document.addEventListener('keydown', (e) => {
+                    switch(e.code) {
+                        case 'Space':
+                            e.preventDefault();
+                            this.togglePause();
+                            break;
+                        case 'KeyR':
+                            this.resetScene();
+                            break;
+                        case 'KeyS':
+                            this.slowMotion();
+                            break;
+                    }
+                });
+
+                // Right-click to delete objects
+                this.canvas.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    const mousePos = this.getMousePos(e);
+                    this.deleteObjectAt(mousePos.x, mousePos.y);
+                });
+
+                // Mouse wheel for zoom
+                this.canvas.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                    this.zoom(zoomFactor);
+                });
+            }
+
+            setupUI() {
+                // Hide loading screen
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').classList.add('hidden');
+                }, 2000);
+
+                // Start FPS counter
+                this.startFPSCounter();
+            }
+
+            spawnObject(type) {
+                const canvas = this.canvas;
+                const x = Math.random() * (canvas.width - 100) + 50;
+                const y = 100;
+                let object;
+
+                switch(type) {
+                    case 'ragdoll':
+                        object = RagdollFactory.createRagdoll(x, y);
+                        this.showNotification('🧍 Ragdoll spawned!');
+                        break;
+                    case 'box':
+                        object = Matter.Bodies.rectangle(x, y, 50, 50, {
+                            render: { fillStyle: '#e74c3c' }
+                        });
+                        break;
+                    case 'ball':
+                        object = Matter.Bodies.circle(x, y, 25, {
+                            render: { fillStyle: '#f39c12' }
+                        });
+                        break;
+                    case 'weapon':
+                        const weaponTypes = ['sword', 'gun', 'axe'];
+                        const weaponType = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
+                        object = WeaponFactory.createWeapon(x, y, weaponType);
+                        break;
+                    case 'explosive':
+                        object = WeaponFactory.createExplosive(x, y);
+                        this.showNotification('💣 Explosive spawned!');
+                        break;
+                    case 'vehicle':
+                        object = VehicleFactory.createVehicle(x, y);
+                        this.showNotification('🚗 Vehicle spawned!');
+                        break;
+                }
+
+                if (object) {
+                    Matter.World.add(this.state.world, object);
+                    this.state.objects.push(object);
+                    this.updateObjectCount();
+                }
+            }
+
+            explode(x, y) {
+                this.particleSystem.createExplosion(x, y, '#ff6b6b');
+                
+                // Apply explosion force to nearby objects
+                const bodies = Matter.Composite.allBodies(this.state.world);
+                bodies.forEach(body => {
+                    if (body.isStatic) return;
+                    
+                    const distance = Math.sqrt(
+                        Math.pow(body.position.x - x, 2) + 
+                        Math.pow(body.position.y - y, 2)
+                    );
+                    
+                    if (distance < 200) {
+                        const force = Math.max(0, (200 - distance) / 200) * 0.05;
+                        const angle = Math.atan2(body.position.y - y, body.position.x - x);
+                        
+                        Matter.Body.applyForce(body, body.position, {
+                            x: Math.cos(angle) * force,
+                            y: Math.sin(angle) * force
+                        });
+                    }
+                });
+
+                this.showNotification('💥 Explosion!');
+            }
+
+            changeMap(mapName) {
+                if (this.state.maps[mapName]) {
+                    this.state.currentMap = mapName;
+                    const map = this.state.maps[mapName];
+                    
+                    this.state.engine.world.gravity.x = map.gravity.x;
+                    this.state.engine.world.gravity.y = map.gravity.y;
+                    this.state.render.options.background = map.background;
+                    
+                    this.showNotification(`🌍 Changed to ${mapName} environment!`);
+                }
+            }
+
+            updatePhysics() {
+                const world = this.state.world;
+                world.gravity.y = this.state.settings.gravity;
+                
+                // Update air friction for all bodies
+                const bodies = Matter.Composite.allBodies(world);
+                bodies.forEach(body => {
+                    if (!body.isStatic) {
+                        body.frictionAir = this.state.settings.airFriction;
+                    }
+                });
+            }
+
+            toggleParticles() {
+                this.state.settings.showParticles = !this.state.settings.showParticles;
+                this.showNotification(this.state.settings.showParticles ? '✨ Particles enabled!' : '❌ Particles disabled!');
+            }
+
+            toggleTrails() {
+                this.state.settings.showTrails = !this.state.settings.showTrails;
+                this.showNotification(this.state.settings.showTrails ? '🌟 Trails enabled!' : '❌ Trails disabled!');
+            }
+
+            toggleWireframe() {
+                this.state.settings.wireframe = !this.state.settings.wireframe;
+                this.state.render.options.wireframe = this.state.settings.wireframe;
+                this.showNotification(this.state.settings.wireframe ? '🔧 Wireframe mode!' : '🎨 Normal rendering!');
+            }
+
+            toggleDebug() {
+                this.state.settings.debug = !this.state.settings.debug;
+                this.state.render.options.showVelocity = this.state.settings.debug;
+                this.state.render.options.showAngleIndicator = this.state.settings.debug;
+                this.state.render.options.showDebug = this.state.settings.debug;
+                this.showNotification(this.state.settings.debug ? '🐛 Debug mode enabled!' : '🔍 Debug mode disabled!');
+            }
+
+            deleteObjectAt(x, y) {
+                const bodies = Matter.Composite.allBodies(this.state.world);
+                const mousePosition = { x, y };
+                
+                for (let body of bodies) {
+                    if (body.isStatic) continue;
+                    
+                    const distance = Math.sqrt(
+                        Math.pow(body.position.x - mousePosition.x, 2) +
+                        Math.pow(body.position.y - mousePosition.y, 2)
+                    );
+                    
+                    if (distance < 30) {
+                        Matter.World.remove(this.state.world, body);
+                        this.showNotification('🗑️ Object deleted!');
+                        this.updateObjectCount();
+                        break;
+                    }
+                }
+            }
+
+            togglePause() {
+                this.state.isPaused = !this.state.isPaused;
+                if (this.state.isPaused) {
+                    Matter.Render.stop(this.state.render);
+                    this.showNotification('⏸️ Physics paused!');
+                } else {
+                    Matter.Render.run(this.state.render);
+                    this.showNotification('▶️ Physics resumed!');
+                }
+            }
+
+            resetScene() {
+                const bodies = Matter.Composite.allBodies(this.state.world);
+                bodies.forEach(body => {
+                    if (!body.isStatic) {
+                        Matter.World.remove(this.state.world, body);
+                    }
+                });
+                
+                this.state.objects = [];
+                this.particleSystem.particles = [];
+                this.updateObjectCount();
+                this.showNotification('🔄 Scene reset!');
+            }
+
+            slowMotion() {
+                this.state.timeScale = this.state.timeScale === 1.0 ? 0.3 : 1.0;
+                this.state.runner.timeScale = this.state.timeScale;
+                this.showNotification(this.state.timeScale === 0.3 ? '🐌 Slow motion!' : '⚡ Normal speed!');
+            }
+
+            zoom(factor) {
+                const render = this.state.render;
+                const currentZoom = render.options.hasOwnProperty('zoom') ? render.options.zoom : 1;
+                const newZoom = Math.max(0.5, Math.min(2, currentZoom * factor));
+                render.options.zoom = newZoom;
+            }
+
+            saveScene() {
+                try {
+                    const sceneData = {
+                        objects: [],
+                        settings: this.state.settings,
+                        currentMap: this.state.currentMap,
+                        timestamp: Date.now()
+                    };
+
+                    // Serialize objects
+                    const bodies = Matter.Composite.allBodies(this.state.world);
+                    bodies.forEach(body => {
+                        if (!body.isStatic) {
+                            sceneData.objects.push({
+                                type: body.label || 'unknown',
+                                position: body.position,
+                                angle: body.angle,
+                                velocity: body.velocity,
+                                angularVelocity: body.angularVelocity
+                            });
+                        }
+                    });
+
+                    localStorage.setItem('ragdollSandbox_scene', JSON.stringify(sceneData));
+                    this.showNotification('💾 Scene saved successfully!');
+                } catch (error) {
+                    this.showNotification('❌ Failed to save scene!');
+                }
+            }
+
+            loadScene() {
+                try {
+                    const savedData = localStorage.getItem('ragdollSandbox_scene');
+                    if (!savedData) {
+                        this.showNotification('⚠️ No saved scene found!');
+                        return;
+                    }
+
+                    const sceneData = JSON.parse(savedData);
+                    
+                    // Clear current scene
+                    this.resetScene();
+                    
+                    // Restore settings
+                    this.state.settings = sceneData.settings;
+                    this.state.currentMap = sceneData.currentMap;
+                    
+                    // Change map
+                    this.changeMap(this.state.currentMap);
+                    
+                    // Restore objects (simplified version)
+                    this.showNotification('📁 Scene loaded successfully!');
+                } catch (error) {
+                    this.showNotification('❌ Failed to load scene!');
+                }
+            }
+
+            clearScene() {
+                this.resetScene();
+                this.showNotification('🧹 Scene cleared!');
+            }
+
+            exportScene() {
+                try {
+                    const sceneData = {
+                        objects: this.state.objects.length,
+                        settings: this.state.settings,
+                        currentMap: this.state.currentMap,
+                        timestamp: Date.now()
+                    };
+
+                    const dataStr = JSON.stringify(sceneData, null, 2);
+                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                    
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(dataBlob);
+                    link.download = `ragdoll-scene-${Date.now()}.json`;
+                    link.click();
+                    
+                    this.showNotification('📤 Scene exported!');
+                } catch (error) {
+                    this.showNotification('❌ Export failed!');
+                }
+            }
+
+            getMousePos(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
+
+            startFPSCounter() {
+                let lastTime = performance.now();
+                let frames = 0;
+                
+                const updateFPS = () => {
+                    const currentTime = performance.now();
+                    frames++;
+                    
+                    if (currentTime >= lastTime + 1000) {
+                        const fps = Math.round((frames * 1000) / (currentTime - lastTime));
+                        document.getElementById('fps').textContent = `FPS: ${fps}`;
+                        frames = 0;
+                        lastTime = currentTime;
+                    }
+                    
+                    requestAnimationFrame(updateFPS);
+                };
+                
+                updateFPS();
+            }
+
+            updateObjectCount() {
+                const bodies = Matter.Composite.allBodies(this.state.world);
+                const dynamicBodies = bodies.filter(body => !body.isStatic).length;
+                document.getElementById('objectCount').textContent = `Objects: ${dynamicBodies}`;
+            }
+
+            showNotification(message) {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        // Global functions for HTML buttons
+        let gameController;
+
+        function changeMap(mapName) {
+            gameController.changeMap(mapName);
+        }
+
+        function toggleParticles() {
+            gameController.toggleParticles();
+        }
+
+        function toggleTrails() {
+            gameController.toggleTrails();
+        }
+
+        function toggleWireframe() {
+            gameController.toggleWireframe();
+        }
+
+        function toggleDebug() {
+            gameController.toggleDebug();
+        }
+
+        function saveScene() {
+            gameController.saveScene();
+        }
+
+        function loadScene() {
+            gameController.loadScene();
+        }
+
+        function clearScene() {
+            gameController.clearScene();
+        }
+
+        function exportScene() {
+            gameController.exportScene();
+        }
+
+        // Initialize game when page loads
+        window.addEventListener('load', () => {
+            gameController = new GameController();
+        });
+
+        // Handle page visibility change
+        document.addEventListener('visibilitychange', () => {
+            if (gameController) {
+                if (document.hidden) {
+                    // Page is hidden, pause physics
+                    if (!gameController.state.isPaused) {
+                        gameController.togglePause();
+                    }
+                } else {
+                    // Page is visible, resume physics
+                    if (gameController.state.isPaused) {
+                        gameController.togglePause();
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
